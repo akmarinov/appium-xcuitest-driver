@@ -147,7 +147,9 @@ Series 12 (46mm) on watchOS 27.0 with Xcode 27.1 for the VoiceOver extensions be
 
     * **W3C key actions are the recommended way to type**: `POST /session/:id/actions` with a `key` input
       source puts text in the focused field. Measured on watchOS 26.5, sending `gamma` followed by
-      `Return` left the field showing `gammaok`
+      `Return` left the field showing `gammaok`. Like every other synthesized gesture it needs the agent
+      at [16.19.2 or newer](#agent-versions); below that version, tapping the on-screen keys is the only
+      way to enter text
     * The on-screen keys can also be tapped. The `XCUIElementTypeKey` elements are present, `enabled` and
       `displayed`, and tapping one enters its character: the keyboard exposes 29 keys, one of them
       `delete`, each identifying itself by `label` (`Q`, `W`, `E`, `delete`, ...), and a
@@ -155,10 +157,15 @@ Series 12 (46mm) on watchOS 27.0 with Xcode 27.1 for the VoiceOver extensions be
       Resolve a key with a fresh lookup immediately before tapping it: a synthesised keystroke makes
       previously found key elements stale, so a list of keys found in advance taps once and then fails
       with `stale element reference`
-    * `POST /session/:id/element/:uuid/value`, its bulk form `POST /session/:id/element/value` and the
-      deprecated `POST /session/:id/keys` all answer `200` and enter nothing. Each one is served, but all
-      of them land on the agent's own typing path, which is compiled out for watchOS - the agent says so in
-      its log - so each is a silent no-op rather than an error; do not use any of them
+    * The deprecated `POST /session/:id/keys` is refused on watchOS. The route is served there and
+      answers `200`, but it lands on the agent's low-level key synthesis, which never reaches the watch
+      keyboard - a silent no-op, so the driver rejects it rather than reporting success for text that
+      never appears
+    * `POST /session/:id/element/:uuid/value` does put text in the focused field, but is not reliable:
+      the agent answers `200` after calling `XCUIElement` `-typeText:`, which keystrokes the agent
+      itself describes as not always landing. Read the field back when the text matters; the value is
+      never silently dropped without that, and the route is deliberately left available because it is
+      the only standard command on that path that sometimes works
     * `POST /session/:id/element/:uuid/clear` only empties a field that is focused and whose edit has been
       committed. On an unfocused field it answers `200` and does nothing
     * A SwiftUI `TextField` keeps its value uncommitted until the keyboard's `Done` button is tapped.

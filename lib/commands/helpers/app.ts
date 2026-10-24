@@ -604,7 +604,10 @@ async function isCachedAppReusable(
     info = await driver.appInfosCache.extractWatchAppInfo(cachedPath);
   } catch (e: any) {
     // An entry whose manifest cannot be read may be anything a previous session left behind, and
-    // the only safe answer is to unpack the package again for this session.
+    // the only safe answer is to unpack the package again for this session. Reusing it would serve
+    // a bundle whose platform cannot be checked against the session's, which is the exact mistake
+    // this function exists to prevent; re-extracting costs one unzip of a package whose hash
+    // already matched, and only in the anomalous case where the cached bundle lost its manifest.
     driver.log.debug(`Cannot inspect the cached application at '${cachedPath}': ${e.message}`);
     return false;
   }

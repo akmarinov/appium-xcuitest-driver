@@ -100,6 +100,7 @@ import * as webCommands from './commands/web.js';
 import * as windowCommands from './commands/window.js';
 import * as xctestRecordScreenCommands from './commands/xctest-record-screen.js';
 import * as xctestCommands from './commands/xctest.js';
+import {SUPPORTED_ORIENTATIONS} from './constants.js';
 import {desiredCapConstraints, type XCUITestDriverConstraints} from './desired-caps.js';
 import {DeviceConnectionsFactory} from './device/device-connections-factory.js';
 import {DeviceDiscovery, type DeviceDiscoveryResult} from './device/device-discovery.js';
@@ -179,7 +180,6 @@ const DEFAULT_SETTINGS = {
 // This lock assures, that each driver session does not
 // affect shared resources of the other parallel sessions
 const WEB_ELEMENTS_CACHE_SIZE = 500;
-const SUPPORTED_ORIENATIONS = ['LANDSCAPE', 'PORTRAIT'];
 
 /* eslint-disable no-useless-escape */
 const NO_PROXY_NATIVE_LIST: RouteMatcher[] = [
@@ -230,10 +230,15 @@ const NO_PROXY_NATIVE_LIST: RouteMatcher[] = [
 
 // The watchOS WebDriverAgent build omits the orientation endpoints, so those routes are served by
 // the driver instead, which reports the unsupported capability rather than forwarding the request
-// and surfacing a raw 'unknown command' error - see lib/commands/display.ts.
-const NO_PROXY_WATCHOS_LIST: RouteMatcher[] = [
+// and surfacing a raw 'unknown command' error - see lib/commands/display.ts. The agent has no such
+// endpoints whatever the context, so the exclusions also apply to a session in a web context.
+const NO_PROXY_WATCHOS_ORIENTATION_LIST: RouteMatcher[] = [
   ['GET', /^\/session\/[^\/]+\/orientation$/],
   ['POST', /^\/session\/[^\/]+\/orientation$/],
+] as RouteMatcher[];
+
+const NO_PROXY_WATCHOS_LIST: RouteMatcher[] = [
+  ...NO_PROXY_WATCHOS_ORIENTATION_LIST,
   ...NO_PROXY_NATIVE_LIST,
 ] as RouteMatcher[];
 
@@ -1065,7 +1070,11 @@ export class XCUITestDriver
 
   override getProxyAvoidList(): RouteMatcher[] {
     if (this.isWebview()) {
-      return NO_PROXY_WEB_LIST;
+      // A web context on watchOS still has no agent-side orientation endpoints, so the watch
+      // exclusions are added to the web ones rather than replacing them.
+      return isWatchOs(this.opts.platformName)
+        ? [...NO_PROXY_WATCHOS_ORIENTATION_LIST, ...NO_PROXY_WEB_LIST]
+        : NO_PROXY_WEB_LIST;
     } else if (isWatchOs(this.opts.platformName)) {
       return NO_PROXY_WATCHOS_LIST;
     }
@@ -1632,10 +1641,10 @@ export class XCUITestDriver
       return;
     }
     const dstOrientation = String(orientation).toUpperCase();
-    if (!SUPPORTED_ORIENATIONS.includes(dstOrientation)) {
+    if (!(SUPPORTED_ORIENTATIONS as readonly string[]).includes(dstOrientation)) {
       this.log.debug(
         `The initial orientation value '${orientation}' is unknown. ` +
-          `Only ${JSON.stringify(SUPPORTED_ORIENATIONS)} are supported.`,
+          `Only ${JSON.stringify(SUPPORTED_ORIENTATIONS)} are supported.`,
       );
       return;
     }

@@ -21,6 +21,7 @@ export type PlatformCapability =
   | 'pasteboardSimulator'
   | 'pasteboardWda'
   | 'pickerWheel'
+  | 'sessionKeyInput'
   | 'simulatorUiSettings';
 
 interface PlatformSupportEntry {
@@ -165,15 +166,17 @@ const PLATFORM_SUPPORT: Readonly<Record<PlatformCapability, PlatformSupportEntry
     // Measured on watchOS 26.5. W3C key actions do land text, and tapping the keyboard's
     // XCUIElementTypeKey elements does too - a key answers `label` ('Q', 'W', 'delete'), and
     // re-resolving it by predicate before every tap is required because synthesising a keystroke
-    // makes the cached element stale. Every other way of putting text in a field is a trap there:
-    // POST /element/:id/value, its bulk form and the deprecated POST /session/:id/keys (which
-    // reaches the agent's /wda/keys - that route *is* registered on watchOS) all answer 200 and
-    // enter nothing, because the agent's typing path is compiled out for the platform. Pointing a
-    // caller at one of those would report success for text that never appears.
+    // makes the cached element stale. POST /element/:id/value is the one standard route that is
+    // *not* a dead end but is unreliable: the agent answers 200 after calling XCUIElement
+    // `-typeText:`, which its own watchOS build marks as a partial workaround whose keystrokes
+    // 'don't always land'. It is deliberately left ungated - refusing it would remove the only
+    // route that sometimes works - so a caller that must be certain has to read the field back.
+    // Bulk text entry is a different story and is gated under `sessionKeyInput`.
     alternative:
-      "use W3C key actions (POST /session/:id/actions with a 'key' input source), which do enter " +
-      "text there, or tap the keyboard's XCUIElementTypeKey elements, resolving each by label " +
-      'again before every tap because a key goes stale once a keystroke is synthesized',
+      "tap the keyboard's XCUIElementTypeKey elements, which every watchOS build serves, " +
+      'resolving each by label again before every tap because a key goes stale once a keystroke ' +
+      `is synthesized; W3C key actions (POST /session/:id/actions with a 'key' input source) also ` +
+      `enter text but need the agent at ${WATCHOS_CAPABLE_WDA_VERSION} or newer`,
   },
   multiTouchGestures: {
     unsupportedPlatforms: [PLATFORM_NAME_WATCHOS],
@@ -213,6 +216,23 @@ const PLATFORM_SUPPORT: Readonly<Record<PlatformCapability, PlatformSupportEntry
       'no watchOS WebDriverAgent build can serve that endpoint',
     alternative: "use 'mobile: swipe' on the scrolling list, or 'mobile: rotateDigitalCrown'",
   },
+  sessionKeyInput: {
+    unsupportedPlatforms: [PLATFORM_NAME_WATCHOS],
+    // Measured on watchOS 26.5: the route is registered, so the request is forwarded, answered 200
+    // and puts nothing on screen. Unlike POST /element/:id/value it never reaches the
+    // `-typeText:` workaround: WebDriverAgent's `handleKeys` calls its own `FBTypeText`, which
+    // synthesises a text-input event record through the test daemon, and that path does not reach
+    // the watchOS keyboard. A caller therefore cannot tell success from failure by looking at the
+    // response alone.
+    reason:
+      'the bulk key entry endpoint answers without entering any text there, because the low-level ' +
+      'key synthesis behind it never reaches the watchOS keyboard',
+    alternative:
+      'send the text to the focused element itself with POST /element/:id/value, reading its ' +
+      'value back because that route reports success even when a keystroke does not land; W3C key ' +
+      "actions (POST /session/:id/actions with a 'key' input source) enter text reliably but need " +
+      `the agent at ${WATCHOS_CAPABLE_WDA_VERSION} or newer`,
+  },
   simulatorUiSettings: {
     unsupportedPlatforms: [PLATFORM_NAME_WATCHOS],
     // `simctl ui <watch> content_size|increase_contrast <value>` fails with 'Operation not
@@ -227,6 +247,15 @@ const PLATFORM_SUPPORT: Readonly<Record<PlatformCapability, PlatformSupportEntry
   // undocumented selector that is only present when the agent was built against the watchOS 27 SDK.
   // Both conditions are measured; see docs/guides/watchos.md.
 };
+
+/**
+ * Every capability the matrix makes a claim about. Exposed so the invariant that the matrix only
+ * ever restricts *extra* platforms - never the two this driver has always served - can be checked
+ * against the real contents of the matrix rather than against a list a test maintains by hand.
+ */
+export function gatedCapabilities(): PlatformCapability[] {
+  return Object.keys(PLATFORM_SUPPORT) as PlatformCapability[];
+}
 
 /**
  * Whether the given platform is expected to support the given capability.

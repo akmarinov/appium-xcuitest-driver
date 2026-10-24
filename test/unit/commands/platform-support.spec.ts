@@ -5,6 +5,7 @@ import type {ActionSequence} from '@appium/types';
 import {errors} from 'appium/driver.js';
 import sinon from 'sinon';
 
+import {gatedCapabilities, isPlatformSupported} from '../../../lib/commands/helpers/platform-support.js';
 import type {Direction} from '../../../lib/commands/types.js';
 import {startWdaSession} from '../../../lib/commands/wda/startup.js';
 import {RemoteXPCFacade} from '../../../lib/device/remote-xpc/facade.js';
@@ -232,6 +233,31 @@ describe('platform support gates', function () {
       assert.equal(driver.proxyRouteIsAvoided('fake-session', 'POST', '/session/fake-session/orientation'), false);
     });
 
+    // The web-context list used to replace the watch one, which handed the orientation routes back
+    // to an agent that has no such endpoints: a watch session that entered a web context would then
+    // answer a raw 'unknown command' instead of the driver's own explanation.
+    it('should hand the orientation routes to the driver in a watchOS web context', function () {
+      const driver = makeDriver(WATCH);
+      sandbox.stub(driver, 'isWebContext').returns(true);
+      assert.equal(driver.proxyRouteIsAvoided('fake-session', 'GET', '/session/fake-session/orientation'), true);
+      assert.equal(driver.proxyRouteIsAvoided('fake-session', 'POST', '/session/fake-session/orientation'), true);
+    });
+
+    it('should hand element routes to the driver in a watchOS web context', function () {
+      const driver = makeDriver(WATCH);
+      sandbox.stub(driver, 'isWebContext').returns(true);
+      assert.equal(
+        driver.proxyRouteIsAvoided('fake-session', 'GET', '/session/fake-session/element/ELEMENT-1/attribute/label'),
+        true,
+      );
+    });
+
+    it('should keep proxying the orientation routes in an iOS web context', function () {
+      const driver = makeDriver(IOS);
+      sandbox.stub(driver, 'isWebContext').returns(true);
+      assert.equal(driver.proxyRouteIsAvoided('fake-session', 'POST', '/session/fake-session/orientation'), false);
+    });
+
     it('should ignore the orientation cap on watchOS without touching the agent', async function () {
       const driver = makeDriver(WATCH);
       const proxy = sandbox.stub(driver, 'proxyCommand').resolves({});
@@ -337,9 +363,11 @@ describe('platform support gates', function () {
   });
 
   describe('text entry', function () {
-    // Measured on watchOS 26.5: W3C key actions and taps on the on-screen keys both land text,
-    // while `POST /element/:id/value`, its bulk form and the deprecated `POST /session/:id/keys`
-    // answer 200 without entering anything. So only the named-key route may be gated.
+    // Measured on watchOS 26.5: W3C key actions and taps on the on-screen keys both land text.
+    // The two agent typing paths are not equivalent: `handleKeys` uses low-level key synthesis,
+    // which never reaches the watch keyboard, while `POST /element/:id/value` calls XCUIElement
+    // `-typeText:`, which the agent's own watchOS build marks as a partial workaround. Only the
+    // first is a guaranteed no-op, so only the named-key and bulk routes are gated.
     it('should reject mobile: keys on watchOS', async function () {
       await assertRejectedOnWatch(
         (driver) => driver.mobileKeys(['a']),
@@ -350,11 +378,37 @@ describe('platform support gates', function () {
     it('should suggest the text-entry routes that do work', async function () {
       const driver = makeDriver(WATCH);
       sandbox.stub(driver, 'proxyCommand').resolves({});
-      await assert.rejects(driver.mobileKeys(['a']), /W3C key actions.*XCUIElementTypeKey elements.*label/s);
+      await assert.rejects(
+        driver.mobileKeys(['a']),
+        /XCUIElementTypeKey elements.*label.*W3C key actions.*16\.19\.2 or newer/s,
+      );
     });
 
     it('should still proxy mobile: keys on iOS', async function () {
       await assertProxiedOnIos((driver) => driver.mobileKeys(['a']), '/wda/element/0/keyboardInput');
+    });
+
+    // `POST /session/:id/keys` is registered on watchOS and answers 200 while entering nothing, so
+    // a caller cannot tell success from failure by looking at the response alone.
+    it('should reject the deprecated bulk keys route on watchOS and name the routes that work', async function () {
+      await assertRejectedOnWatch(
+        (driver) => driver.keys(['a']),
+        /^Sending key sequences is not supported on watchOS: the bulk key entry endpoint answers without entering any text there.*W3C key actions/s,
+      );
+    });
+
+    it('should still proxy the bulk keys route on iOS', async function () {
+      await assertProxiedOnIos((driver) => driver.keys(['a']), '/wda/keys');
+    });
+
+    // The route that does reach the platform's typing API stays available on watchOS, whatever the
+    // agent build reports, so gating the routes above cannot take it away.
+    it('should still send element values on watchOS', async function () {
+      const driver = makeDriver(WATCH);
+      sandbox.stub(driver, 'isWebContext').returns(false);
+      const proxy = sandbox.stub(driver, 'proxyCommand').resolves({});
+      await driver.setValue('hello', 'ELEMENT-1');
+      sinon.assert.calledWith(proxy, '/element/ELEMENT-1/value', 'POST');
     });
 
     it('should reject keyboard dismissal on watchOS with an agent older than the accessory-bar fix', async function () {
@@ -740,5 +794,25 @@ describe('platform support gates', function () {
       const caps = await captureWdaSessionCaps(IOS, {autoDismissAlerts: true});
       assert.equal(caps.defaultAlertAction, 'dismiss');
     });
+  });
+
+  // The matrix exists to take commands away from platforms this driver only recently learned about;
+  // iOS and tvOS are its baseline, and an entry that lists either one silently turns a working
+  // session command into a NotImplementedError for every user of that platform. Checked against the
+  // live contents of the matrix, so a newly added entry is covered without a test being written.
+  describe('matrix scope', function () {
+    for (const platformName of [IOS, 'tvOS']) {
+      it(`should never restrict ${platformName}`, function () {
+        for (const capability of gatedCapabilities()) {
+          // No agent version is passed: an entry that named a floor for these platforms would still
+          // have to admit the newest build, so check the strictest case.
+          assert.equal(
+            isPlatformSupported(capability, platformName, '0.0.1'),
+            true,
+            `'${capability}' must stay supported on ${platformName}`,
+          );
+        }
+      });
+    }
   });
 });

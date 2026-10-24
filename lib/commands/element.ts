@@ -3,6 +3,7 @@ import {errors} from 'appium/driver.js';
 import {util} from 'appium/support.js';
 
 import type {XCUITestDriver} from '../driver.js';
+import {requirePlatformSupport} from './helpers/index.js';
 import type {AtomsElement} from './types.js';
 
 /**
@@ -282,9 +283,14 @@ export async function setValueWithWebAtom(
 /**
  * Sends raw key sequences via WDA.
  *
+ * watchOS is gated: the agent's key route answers 200 there while entering nothing, so the
+ * request is refused with the routes that do work instead of reporting a silent failure.
+ *
  * @param value - Keys to send
  */
 export async function keys(this: XCUITestDriver, value: string[] | string | number): Promise<void> {
+  requirePlatformSupport(this, 'sessionKeyInput', 'Sending key sequences');
+
   await this.proxyCommand('/wda/keys', 'POST', {
     value: prepareInputValue(value),
   });

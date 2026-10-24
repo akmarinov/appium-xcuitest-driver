@@ -25,6 +25,31 @@ let xcrunImpl: (args: string[]) => Promise<{stdout: string; stderr: string}> = a
 });
 let appiumXcodeFailures: {ios?: string; tvos?: string} = {};
 
+/**
+ * Stand-in for `appium-xcode`'s memoization of `getMaxTVOSSDK`: the real getter caches the promise it
+ * returns, so a rejected one is replayed to every later caller until somebody clears the cache. The
+ * fake has to behave the same way, otherwise a test of "a failed lookup is not replayed" would pass
+ * no matter what the helper does.
+ */
+const tvosSdkCache = new Map<unknown, Promise<string>>();
+
+const getMaxTVOSSDKStub = Object.assign(
+  (retries?: number): Promise<string> => {
+    const cached = tvosSdkCache.get(retries);
+    if (cached) {
+      return cached;
+    }
+    const lookup = (async () => {
+      if (appiumXcodeFailures.tvos) {
+        throw new Error(appiumXcodeFailures.tvos);
+      }
+      return tvosSdkVersion;
+    })();
+    tvosSdkCache.set(retries, lookup);
+    return lookup;
+  },
+  {cache: tvosSdkCache},
+);
 mock.module('appium-xcode', {
   namedExports: {
     ...appiumXcodeNamed,
@@ -34,12 +59,7 @@ mock.module('appium-xcode', {
       }
       return iosSdkVersion;
     },
-    getMaxTVOSSDK: async () => {
-      if (appiumXcodeFailures.tvos) {
-        throw new Error(appiumXcodeFailures.tvos);
-      }
-      return tvosSdkVersion;
-    },
+    getMaxTVOSSDK: getMaxTVOSSDKStub,
   },
 });
 mock.module('teen_process', {
@@ -63,9 +83,12 @@ describe('xcode helpers', function () {
     xcrunImpl = async () => ({stdout: `${WATCHOS_SDK_VERSION}\n`, stderr: ''});
     // the watchOS getter caches its promise for the whole process
     xcodeHelpers.getMaxWatchSdkVersion.cache.clear();
+    // so does the memoised tvOS getter of `appium-xcode`
+    tvosSdkCache.clear();
   });
   afterEach(function () {
     xcodeHelpers.getMaxWatchSdkVersion.cache.clear();
+    tvosSdkCache.clear();
   });
 
   describe('getAndCheckMaxSdkVersion', function () {
@@ -143,6 +166,17 @@ describe('xcode helpers', function () {
         () => xcodeHelpers.getAndCheckMaxSdkVersion('tvOS'),
         /Could not determine tvOS SDK version: xcrun returned a non-numeric tvOS SDK version/,
       );
+    });
+
+    // `appium-xcode` memoizes the getter, so the rejected promise of one transient `xcrun` failure
+    // would otherwise be replayed to every later session of a long-lived server, even after the SDK
+    // has become available again.
+    it('does not cache a failed tvOS lookup for later sessions', async function () {
+      appiumXcodeFailures.tvos = 'xcrun is not installed';
+      await assert.rejects(() => xcodeHelpers.getAndCheckMaxSdkVersion('tvOS'), /xcrun is not installed/);
+
+      appiumXcodeFailures = {};
+      assert.strictEqual(await xcodeHelpers.getAndCheckMaxSdkVersion('tvOS'), TVOS_SDK_VERSION);
     });
 
     it('reports an iOS SDK lookup failure with the iOS platform name', async function () {

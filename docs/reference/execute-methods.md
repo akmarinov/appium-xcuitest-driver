@@ -2417,10 +2417,11 @@ absent from the watchOS agent build. Entering text on watchOS works through W3C 
 `delete`), so a selector such as `-ios predicate string` on "label == 'Q' AND type ==
 'XCUIElementTypeKey'" matches it. Resolve every key immediately before tapping it: a synthesised
 keystroke makes an already-found key element answer `stale element reference`, so a list of keys
-gathered up front taps once and then fails. None of the typing routes are options there:
-`POST /session/:id/element/:uuid/value`, its bulk form `POST /session/:id/element/value` and the
-deprecated `POST /session/:id/keys` all answer with success and enter nothing, because the agent's
-typing path is compiled out for watchOS.
+gathered up front taps once and then fails. The deprecated `POST /session/:id/keys` is refused on
+watchOS: it is served there and answers with success, but its low-level key synthesis never reaches
+the watch keyboard. `POST /session/:id/element/:uuid/value` does enter text, unreliably - the agent
+answers with success after calling `XCUIElement` `-typeText:`, whose keystrokes do not always land -
+so read the field back when the text matters.
 The API only works on iPad. On iOS calling it has no effect.
 
 #### Arguments

@@ -4,3 +4,11 @@ export const UDID_AUTO = 'auto';
 export const PLATFORM_NAME_IOS = 'iOS';
 export const PLATFORM_NAME_TVOS = 'tvOS';
 export const PLATFORM_NAME_WATCHOS = 'watchOS';
+
+/**
+ * Orientations the driver accepts for `appium:orientation` and `POST /orientation`.
+ *
+ * The agent answers `LANDSCAPE`/`PORTRAIT` only; its own mapping turns every landscape value it
+ * accepts into `LANDSCAPE`.
+ */
+export const SUPPORTED_ORIENTATIONS = ['LANDSCAPE', 'PORTRAIT'] as const;

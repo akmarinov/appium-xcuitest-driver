@@ -37,6 +37,9 @@ export async function getAndCheckTvosSdkVersion(): Promise<string> {
   try {
     return await xcode.getMaxTVOSSDK();
   } catch (err) {
+    // the getter is memoized, so a transient xcrun failure must not be replayed to every later
+    // session of a long-lived server
+    xcode.getMaxTVOSSDK.cache.clear();
     throw log.errorWithException(`Could not determine ${PLATFORM_NAME_TVOS} SDK version: ${toErrorMessage(err)}`);
   }
 }
