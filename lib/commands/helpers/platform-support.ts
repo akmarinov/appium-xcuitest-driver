@@ -166,12 +166,13 @@ const PLATFORM_SUPPORT: Readonly<Record<PlatformCapability, PlatformSupportEntry
     // Measured on watchOS 26.5. W3C key actions do land text, and tapping the keyboard's
     // XCUIElementTypeKey elements does too - a key answers `label` ('Q', 'W', 'delete'), and
     // re-resolving it by predicate before every tap is required because synthesising a keystroke
-    // makes the cached element stale. POST /element/:id/value is the one standard route that is
-    // *not* a dead end but is unreliable: the agent answers 200 after calling XCUIElement
-    // `-typeText:`, which its own watchOS build marks as a partial workaround whose keystrokes
-    // 'don't always land'. It is deliberately left ungated - refusing it would remove the only
-    // route that sometimes works - so a caller that must be certain has to read the field back.
-    // Bulk text entry is a different story and is gated under `sessionKeyInput`.
+    // makes the cached element stale. POST /element/:id/value is not compiled out - its watchOS
+    // branch calls XCUIElement `-typeText:` and then returns YES whatever happened - so it answers
+    // 200 without saying whether anything was typed, and it was measured entering nothing (the
+    // field still read its placeholder after the edit was committed through the accessory bar's
+    // `Done`). It stays ungated because the agent itself describes `-typeText:` as a partial
+    // workaround rather than a no-op, and refusing it would take away a route that costs nothing
+    // to try; a caller that must be certain has to read the field back either way.
     alternative:
       "tap the keyboard's XCUIElementTypeKey elements, which every watchOS build serves, " +
       'resolving each by label again before every tap because a key goes stale once a keystroke ' +
@@ -228,10 +229,11 @@ const PLATFORM_SUPPORT: Readonly<Record<PlatformCapability, PlatformSupportEntry
       'the bulk key entry endpoint answers without entering any text there, because the low-level ' +
       'key synthesis behind it never reaches the watchOS keyboard',
     alternative:
-      'send the text to the focused element itself with POST /element/:id/value, reading its ' +
-      'value back because that route reports success even when a keystroke does not land; W3C key ' +
-      "actions (POST /session/:id/actions with a 'key' input source) enter text reliably but need " +
-      `the agent at ${WATCHOS_CAPABLE_WDA_VERSION} or newer`,
+      "tap the keyboard's XCUIElementTypeKey elements, resolving each by label again before every " +
+      "tap; W3C key actions (POST /session/:id/actions with a 'key' input source) also enter " +
+      `text but need the agent at ${WATCHOS_CAPABLE_WDA_VERSION} or newer. Sending the text to one ` +
+      'element with POST /element/:id/value does not solve it - that route answers success here too ' +
+      'and was measured entering nothing, so read the value back if you try it',
   },
   simulatorUiSettings: {
     unsupportedPlatforms: [PLATFORM_NAME_WATCHOS],

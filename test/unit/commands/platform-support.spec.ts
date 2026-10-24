@@ -401,8 +401,9 @@ describe('platform support gates', function () {
       await assertProxiedOnIos((driver) => driver.keys(['a']), '/wda/keys');
     });
 
-    // The route that does reach the platform's typing API stays available on watchOS, whatever the
-    // agent build reports, so gating the routes above cannot take it away.
+    // The standard W3C text route stays available on watchOS even though it was measured entering
+    // nothing: the agent treats the XCTest call behind it as a partial workaround rather than a dead
+    // path, so refusing it would be the driver claiming more certainty than the platform offers.
     it('should still send element values on watchOS', async function () {
       const driver = makeDriver(WATCH);
       sandbox.stub(driver, 'isWebContext').returns(false);

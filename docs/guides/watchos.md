@@ -161,11 +161,13 @@ Series 12 (46mm) on watchOS 27.0 with Xcode 27.1 for the VoiceOver extensions be
       answers `200`, but it lands on the agent's low-level key synthesis, which never reaches the watch
       keyboard - a silent no-op, so the driver rejects it rather than reporting success for text that
       never appears
-    * `POST /session/:id/element/:uuid/value` does put text in the focused field, but is not reliable:
-      the agent answers `200` after calling `XCUIElement` `-typeText:`, which keystrokes the agent
-      itself describes as not always landing. Read the field back when the text matters; the value is
-      never silently dropped without that, and the route is deliberately left available because it is
-      the only standard command on that path that sometimes works
+    * `POST /session/:id/element/:uuid/value` answers `200` and was measured entering **nothing**. It is
+      not compiled out: the agent's watchOS branch calls `XCUIElement -typeText:`, which returns `void`,
+      and then reports success whatever happened - so the status code carries no information, which is
+      why this is not gated away but must not be trusted. Measured with the keyboard on screen and the
+      edit committed through the accessory bar's `Done`, the field still read its placeholder; the agent
+      describes `-typeText:` as a partial workaround rather than a dead path, so if it ever does land,
+      reading the value back is what tells you
     * `POST /session/:id/element/:uuid/clear` only empties a field that is focused and whose edit has been
       committed. On an unfocused field it answers `200` and does nothing
     * A SwiftUI `TextField` keeps its value uncommitted until the keyboard's `Done` button is tapped.

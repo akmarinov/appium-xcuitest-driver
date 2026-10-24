@@ -2419,9 +2419,9 @@ absent from the watchOS agent build. Entering text on watchOS works through W3C 
 keystroke makes an already-found key element answer `stale element reference`, so a list of keys
 gathered up front taps once and then fails. The deprecated `POST /session/:id/keys` is refused on
 watchOS: it is served there and answers with success, but its low-level key synthesis never reaches
-the watch keyboard. `POST /session/:id/element/:uuid/value` does enter text, unreliably - the agent
-answers with success after calling `XCUIElement` `-typeText:`, whose keystrokes do not always land -
-so read the field back when the text matters.
+the watch keyboard. `POST /session/:id/element/:uuid/value` also answers with success while entering
+nothing - the agent's watchOS branch calls `XCUIElement -typeText:`, which returns nothing and is
+followed by an unconditional success, so the status code says nothing about what landed.
 The API only works on iPad. On iOS calling it has no effect.
 
 #### Arguments
