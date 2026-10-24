@@ -249,8 +249,11 @@ Apart from the items above, the core surface works on watchOS: element lookup an
 [`mobile: pressButton`](../reference/execute-methods.md#mobile-pressbutton),
 [`mobile: deviceScreenInfo`](../reference/execute-methods.md#mobile-devicescreeninfo),
 [`mobile: activeAppInfo`](../reference/execute-methods.md#mobile-activeappinfo),
-[`mobile: performIoHidEvent`](../reference/execute-methods.md#mobile-performiohidevent) and
-XCTest screen recording (`mobile: startScreenRecording`/`stopScreenRecording`). Each entry in the
+[`mobile: performIoHidEvent`](../reference/execute-methods.md#mobile-performiohidevent) (its
+`durationSeconds` parameter is required) and screen recording
+(`mobile: startScreenRecording`/`stopScreenRecording`). Recording runs on the host: `ffmpeg` reads the
+agent's MJPEG stream, so it needs that stream reachable, and `videoType` names a *codec* (`mjpeg` by
+default) rather than a container - the output file is always `.mp4`. Each entry in the
 [execute methods reference](../reference/execute-methods.md) states its own watchOS behaviour where
 that differs from iOS.
 
