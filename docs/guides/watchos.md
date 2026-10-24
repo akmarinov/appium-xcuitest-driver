@@ -108,10 +108,13 @@ Series 12 (46mm) on watchOS 27.0 with Xcode 27.1 for the VoiceOver extensions be
   [`mobile: dragFromToWithVelocity`](../reference/execute-methods.md#mobile-dragfromtowithvelocity),
   [`mobile: tapWithNumberOfTaps`](../reference/execute-methods.md#mobile-tapwithnumberoftaps) and standard
   W3C actions (`POST /session/:id/actions`). With an agent older than that floor each is rejected with a
-  message naming the version to upgrade to, rather than the raw error such a build would have returned; on
-  W3C actions that raw error is an unrecognized-selector 500, because the `/actions` route string *is*
-  present in a build like that while the category answering it is not. Once the agent is new enough they
-  all work - a W3C pointer sequence that taps an element makes that element's action fire
+  message naming the version to upgrade to, rather than the raw error such a build would have returned: a
+  scroll or swipe command answers `Unknown command`, because those routes are not registered at all in a
+  build without the watch targets; on W3C actions the raw error is an unrecognized-selector 500, because
+  the `/actions` route string *is* present in a build like that while the category answering it is not.
+  Once the agent is new enough they all work - a W3C pointer sequence that taps an element makes that
+  element's action fire, and `mobile: scroll` moves lists (`direction`, `predicateString` and `toVisible`
+  measured; the `name` strategy needs elements that carry accessibility identifiers)
 * [`mobile: swipe`](../reference/execute-methods.md#mobile-swipe) is supported, but its optional
   `velocity` argument is refused at any agent version. There, XCTest's velocity-carrying swipe stalls
   inside event synthesis - measured at 78 s before it took the WebDriverAgent runner down, which ends
