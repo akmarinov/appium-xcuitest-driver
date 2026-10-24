@@ -120,7 +120,7 @@ describe('platform support gates', function () {
         assert.ok(err instanceof errors.NotImplementedError, `expected NotImplementedError, got ${String(err)}`);
         assert.match(
           err.message,
-          /^Battery info is not supported on watchOS: battery info needs a watchOS WebDriverAgent build that reads it through WatchKit, which versions older than 16\.19\.2 do not contain; upgrade the appium-webdriveragent package to its latest release, which is 16\.19\.2 or newer$/,
+          /^Battery info is not supported on watchOS: battery info needs a watchOS WebDriverAgent build that reads it through WatchKit, which versions older than 16\.19\.2 do not contain; upgrade the appium-webdriveragent package to 16\.19\.2 or newer$/,
         );
         return true;
       });
@@ -365,7 +365,7 @@ describe('platform support gates', function () {
         assert.ok(err instanceof errors.NotImplementedError, `expected NotImplementedError, got ${String(err)}`);
         assert.match(
           err.message,
-          /^mobile: hideKeyboard is not supported on watchOS: keyboard dismissal needs a watchOS WebDriverAgent build that rejects an accessory-bar match owned by the application under test, which versions older than 16\.19\.2 do not; upgrade the appium-webdriveragent package to its latest release, which is 16\.19\.2 or newer, or tap the 'Done' button of the keyboard's accessory bar directly$/,
+          /^mobile: hideKeyboard is not supported on watchOS: keyboard dismissal needs a watchOS WebDriverAgent build that rejects an accessory-bar match owned by the application under test, which versions older than 16\.19\.2 do not; upgrade the appium-webdriveragent package to 16\.19\.2 or newer, or tap the 'Done' button of the keyboard's accessory bar directly$/,
         );
         return true;
       });
@@ -473,7 +473,7 @@ describe('platform support gates', function () {
         assert.ok(err instanceof errors.NotImplementedError, `expected NotImplementedError, got ${String(err)}`);
         assert.match(
           err.message,
-          /^W3C actions is not supported on watchOS: synthesized gestures need a watchOS WebDriverAgent build whose event builders no longer need UIKit's UIInterfaceOrientation, which versions older than 16\.19\.2 do not contain; upgrade the appium-webdriveragent package to its latest release, which is 16\.19\.2 or newer, or use POST \/element\/:uuid\/click, which every watchOS build serves$/,
+          /^W3C actions is not supported on watchOS: synthesized gestures need a watchOS WebDriverAgent build whose event builders no longer need UIKit's UIInterfaceOrientation, which versions older than 16\.19\.2 do not contain; upgrade the appium-webdriveragent package to 16\.19\.2 or newer, or use POST \/element\/:uuid\/click, which every watchOS build serves$/,
         );
         return true;
       });

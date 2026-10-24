@@ -96,9 +96,7 @@ const PLATFORM_SUPPORT: Readonly<Record<PlatformCapability, PlatformSupportEntry
     reason:
       'battery info needs a watchOS WebDriverAgent build that reads it through WatchKit, which ' +
       `versions older than ${WATCHOS_CAPABLE_WDA_VERSION} do not contain`,
-    alternative:
-      'upgrade the appium-webdriveragent package to its latest release, which is ' +
-      `${WATCHOS_CAPABLE_WDA_VERSION} or newer`,
+    alternative: `upgrade the appium-webdriveragent package to ${WATCHOS_CAPABLE_WDA_VERSION} or newer`,
   },
   deepLink: {
     unsupportedPlatforms: [PLATFORM_NAME_WATCHOS],
@@ -129,8 +127,7 @@ const PLATFORM_SUPPORT: Readonly<Record<PlatformCapability, PlatformSupportEntry
       "UIKit's UIInterfaceOrientation, which " +
       `versions older than ${WATCHOS_CAPABLE_WDA_VERSION} do not contain`,
     alternative:
-      'upgrade the appium-webdriveragent package to its latest release, which is ' +
-      `${WATCHOS_CAPABLE_WDA_VERSION} or newer, ` +
+      `upgrade the appium-webdriveragent package to ${WATCHOS_CAPABLE_WDA_VERSION} or newer, ` +
       'or use POST /element/:uuid/click, which every watchOS build serves',
   },
   hideKeyboard: {
@@ -152,8 +149,7 @@ const PLATFORM_SUPPORT: Readonly<Record<PlatformCapability, PlatformSupportEntry
       'owned by the application under test, which ' +
       `versions older than ${WATCHOS_CAPABLE_WDA_VERSION} do not`,
     alternative:
-      'upgrade the appium-webdriveragent package to its latest release, which is ' +
-      `${WATCHOS_CAPABLE_WDA_VERSION} or newer, ` +
+      `upgrade the appium-webdriveragent package to ${WATCHOS_CAPABLE_WDA_VERSION} or newer, ` +
       "or tap the 'Done' button of the keyboard's accessory bar directly",
   },
   keyboardInput: {
