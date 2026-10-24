@@ -7,14 +7,14 @@ supported** - sessions requesting a real watchOS device will fail.
 
 Sessions running on watchOS have the following minimum requirements:
 
-* XCUITest driver 12.6.0 or later
+* XCUITest driver 12.6.0 or later (WebDriverAgent 16.5.0 or later)
 * Xcode 15.4 or later
 * watchOS 10 or later
 * `appium-webdriveragent` **16.19.2 or newer** for the capabilities listed under
-  [Known Limitations](#known-limitations). Older releases do serve a watchOS session - sessions,
-  source, element lookup, tap, screenshots and lifecycle all work - but they predate the watch fixes,
-  so each of those capabilities is refused with a message naming the version to upgrade to. Check the
-  version you have with `npm info appium-webdriveragent version` - see [Agent Versions](#agent-versions)
+  [Known Limitations](#known-limitations). Releases between the 16.5.0 line above and this one still
+  serve a watchOS session - lookups, taps, screenshots and lifecycle all work - they just predate the
+  watch fixes, so each gated capability is refused with a message naming the version to upgrade to.
+  Check the version you have with `npm info appium-webdriveragent version` - see [Agent Versions](#agent-versions)
 
 All watchOS sessions must set their `platformName` capability to `watchOS` (instead of `iOS`).
 
@@ -94,10 +94,10 @@ Verified against Apple Watch Series 11 (46mm) and Ultra 3 (49mm) Simulators on w
 Series 12 (46mm) on watchOS 27.0 with Xcode 27.1 for the VoiceOver extensions below.
 
 * Only the Simulator is supported; real watchOS devices cannot be used as automation targets
-* Synthesized gestures need `appium-webdriveragent` **16.19.2 or newer** - upgrade the package to its
-  latest release: the agent's event builders take UIKit's `UIInterfaceOrientation`, a type watchOS marks
-  unavailable, so a watch build that does not work around it has the whole synthesis layer compiled out
-  and only `POST /session/:id/element/:uuid/click` left, which every build serves. That family is
+* Synthesized gestures need `appium-webdriveragent` **16.19.2 or newer**: the agent's event builders take
+  UIKit's `UIInterfaceOrientation`, a type watchOS marks unavailable, so a watch build that does not
+  work around it has the whole synthesis layer compiled out and only
+  `POST /session/:id/element/:uuid/click` left, which every build serves. That family is
   [`mobile: tap`](../reference/execute-methods.md#mobile-tap),
   [`mobile: doubleTap`](../reference/execute-methods.md#mobile-doubletap),
   [`mobile: twoFingerTap`](../reference/execute-methods.md#mobile-twofingertap),
@@ -160,9 +160,9 @@ Series 12 (46mm) on watchOS 27.0 with Xcode 27.1 for the VoiceOver extensions be
       committed. On an unfocused field it answers `200` and does nothing
     * A SwiftUI `TextField` keeps its value uncommitted until the keyboard's `Done` button is tapped.
       [`mobile: hideKeyboard`](../reference/execute-methods.md#mobile-hidekeyboard) does that with
-      `appium-webdriveragent` **16.19.2 or newer** - upgrade the package to its latest release. It asks the
-      agent for both `done` and `Done`, because the control that closes the watch keyboard is the
-      accessory bar's `Done` button rather than the iOS keyboard's `done` key, and that button is a
+      `appium-webdriveragent` **16.19.2 or newer**. It asks the agent for both `done` and `Done`,
+      because the control that closes the watch keyboard is the accessory bar's `Done` button
+      rather than the iOS keyboard's `done` key, and that button is a
       sibling of `XCUIElementTypeKey` and `XCUIElementTypeKeyboard` in the element tree rather than a
       child of the keyboard, so the search has to leave the keyboard element. It must also reject a `Done`
       belonging to the application under test: `Done` is a common application button name, and matching the
@@ -212,7 +212,7 @@ Series 12 (46mm) on watchOS 27.0 with Xcode 27.1 for the VoiceOver extensions be
   [`mobile: siriCommand`](../reference/execute-methods.md#mobile-siricommand), so confirm an
   appearance change with a screenshot rather than by reading it back
 * [`mobile: batteryInfo`](../reference/execute-methods.md#mobile-batteryinfo) needs
-  `appium-webdriveragent` **16.19.2 or newer** - upgrade the package to its latest release, whose watchOS
+  `appium-webdriveragent` **16.19.2 or newer**, whose watchOS
   build reads the battery through WatchKit. With an older agent the call is rejected with a message asking
   for the upgrade. A watch Simulator reports `level: -1` and `state: 0` (both unknown), because simulators
   have no battery.
@@ -267,7 +267,7 @@ the same `invalid argument` reply here that it gets on iOS rather than a message
 The watchOS capabilities above live in the `appium-webdriveragent` package, and its release numbering is
 assigned by the agent repository's release tooling rather than by this driver. **16.19.2** is the version
 whose watchOS build first carries those fixes; it is a floor, so any newer release satisfies it. It is
-not the first release to ship a watchOS agent at all - upstream has published one for a while - so
+not the first release to ship a watchOS agent - 16.5.1 is, and every release since publishes one - so
 installing something below the floor does not break a watchOS session, it only limits it: the ordinary
 surface (sessions, source, element lookup, tap, screenshots, lifecycle, and text entry by tapping the
 on-screen keys) keeps working, while the gated capabilities raise `NotImplementedError` naming the
