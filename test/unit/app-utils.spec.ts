@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import {describe, it, before} from 'node:test';
+import {describe, it, before, type TestContext} from 'node:test';
 
 import {fs, tempDir, zip} from 'appium/support.js';
 import {createSandbox} from 'sinon';
@@ -8,6 +8,21 @@ import {createSandbox} from 'sinon';
 import {onDownloadApp, unzipStream, unzipFile} from '../../lib/commands/helpers/app.js';
 import {XCUITestDriver} from '../../lib/driver.js';
 import {getUIKitCatalogPath} from '../setup.js';
+
+/**
+ * `unzipStream` shells out to `bsdtar`, so every case that extracts through it needs the tool.
+ *
+ * @returns Whether the caller must abandon the test
+ */
+async function skipWithoutBsdtar(t: TestContext): Promise<boolean> {
+  try {
+    await fs.which('bsdtar');
+    return false;
+  } catch {
+    t.skip('Requires bsdtar');
+    return true;
+  }
+}
 
 describe('app-utils', function () {
   let uiCatalogAppPath: string;
@@ -18,10 +33,10 @@ describe('app-utils', function () {
   });
 
   describe('unzipStream', function () {
-    it('should unzip from stream', async function () {
-      try {
-        await fs.which('bsdtar');
-      } catch {
+    it('should unzip from stream', async function (t) {
+      // A case that unpacked nothing yet reported success would be indistinguishable from one that
+      // verified the extraction, so a missing tool has to skip rather than return.
+      if (await skipWithoutBsdtar(t)) {
         return;
       }
 
@@ -44,10 +59,8 @@ describe('app-utils', function () {
       }
     });
 
-    it('should fail for invalid archives', async function () {
-      try {
-        await fs.which('bsdtar');
-      } catch {
+    it('should fail for invalid archives', async function (t) {
+      if (await skipWithoutBsdtar(t)) {
         return;
       }
 
@@ -96,10 +109,8 @@ describe('app-utils', function () {
   });
 
   describe('onDownloadApp', function () {
-    it('should select an .ipa nested in a remote .zip on a real device', async function () {
-      try {
-        await fs.which('bsdtar');
-      } catch {
+    it('should select an .ipa nested in a remote .zip on a real device', async function (t) {
+      if (await skipWithoutBsdtar(t)) {
         return;
       }
 
