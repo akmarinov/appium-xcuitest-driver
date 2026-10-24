@@ -54,9 +54,11 @@ interface PlatformSupportEntry {
  * (16.18.0, 16.19.0, 16.19.1) were never published, so no agent anyone can install reports them.
  *
  * The number is what the agent repository's package.json carries on the branch that introduces the
- * watch targets. Release tooling recomputes from it plus the commit types, so the version that
- * actually reaches npm will be this or higher - which still clears this floor. If that release ever
- * lands at a lower number than expected, or the work is split across releases, update this constant.
+ * watch targets, and release tooling recomputes from it: `lerna version` over this branch's commits
+ * (a `feat:` among them, so a minor bump) measures `16.19.2 => 16.20.0`, which clears this floor.
+ * It stays a floor rather than a copy of that prediction - if the agent work is split across
+ * releases, or maintainers reset package.json to the last release tag before versioning, the number
+ * that lands shifts, and this constant is the one line to correct.
  */
 const WATCHOS_CAPABLE_WDA_VERSION = '16.19.2';
 
