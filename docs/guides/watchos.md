@@ -10,11 +10,11 @@ Sessions running on watchOS have the following minimum requirements:
 * XCUITest driver 12.6.0 or later
 * Xcode 15.4 or later
 * watchOS 10 or later
-* `appium-webdriveragent` **16.19.2 or newer**. Releases older than that carry no watchOS agent build
-  at all, and several capabilities under [Known Limitations](#known-limitations) additionally need it.
-  Check the version you actually have (`npm info appium-webdriveragent version`): as of this writing the
-  published release does not yet carry the watchOS fixes, so a registry-installed agent reports an older
-  number and those capabilities stay gated - see [Agent Versions](#agent-versions)
+* `appium-webdriveragent` **16.19.2 or newer** for the capabilities listed under
+  [Known Limitations](#known-limitations). Older releases do serve a watchOS session - sessions,
+  source, element lookup, tap, screenshots and lifecycle all work - but they predate the watch fixes,
+  so each of those capabilities is refused with a message naming the version to upgrade to. Check the
+  version you have with `npm info appium-webdriveragent version` - see [Agent Versions](#agent-versions)
 
 All watchOS sessions must set their `platformName` capability to `watchOS` (instead of `iOS`).
 
@@ -266,12 +266,12 @@ the same `invalid argument` reply here that it gets on iOS rather than a message
 
 The watchOS capabilities above live in the `appium-webdriveragent` package, and its release numbering is
 assigned by the agent repository's release tooling rather than by this driver. **16.19.2** is the version
-whose sources first carry the watch agent build and the watch fixes; it is a floor, so any newer release
-satisfies it. At the time of writing the newest *published* release is older than that floor, so a
-registry-installed agent serves the ordinary watchOS surface (sessions, source, element lookup, tap,
-screenshots, lifecycle, and text entry by tapping the on-screen keys) and the gated capabilities raise
-`NotImplementedError` naming the version to upgrade to. Check what you have with
-`npm info appium-webdriveragent version`, or read the `build.version` the running agent reports.
+whose watchOS build first carries those fixes; it is a floor, so any newer release satisfies it. It is
+not the first release to ship a watchOS agent at all - upstream has published one for a while - so
+installing something below the floor does not break a watchOS session, it only limits it: the ordinary
+surface (sessions, source, element lookup, tap, screenshots, lifecycle, and text entry by tapping the
+on-screen keys) keeps working, while the gated capabilities raise `NotImplementedError` naming the
+version to upgrade to. Read the agent's reported `build.version` to see which one you are talking to.
 
 ## Related Tickets
 

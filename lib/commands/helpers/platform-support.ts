@@ -48,10 +48,13 @@ interface PlatformSupportEntry {
 }
 
 /**
- * Lowest `appium-webdriveragent` version whose sources carry the watchOS agent. Everything gated
- * below ships in that one release, so the entries deliberately share this number rather than each
- * naming a version of its own: the intermediate versions this work passed through on the way here
- * (16.18.0, 16.19.0, 16.19.1) were never published, so no agent anyone can install reports them.
+ * Lowest `appium-webdriveragent` version whose watchOS build carries the gated routes. Not the first
+ * watchOS agent build - upstream has shipped one for a while (published releases 16.16.0 through 16.17.4
+ * all publish `WebDriverAgentRunner_watchOS` assets, and a watchOS session runs against them), it just
+ * predates the watch fixes below. Everything gated here ships in that one release, so the entries
+ * deliberately share this number rather than each naming a version of its own: the intermediate
+ * versions this work passed through on the way here (16.18.0, 16.19.0, 16.19.1) were never published,
+ * so no agent anyone can install reports them.
  *
  * The number is what the agent repository's package.json carries on the branch that introduces the
  * watch targets, and release tooling recomputes from it: `lerna version` over this branch's commits
